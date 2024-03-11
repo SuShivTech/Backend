@@ -44,6 +44,11 @@ connectdb();
 const app = express();
 
 const port = process.env.PORT || 8080;
+
+
+app.use(cors());
+
+
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerscep))
 
 app.use(cookieparser())

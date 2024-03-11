@@ -14,9 +14,10 @@ const jwt = require('jsonwebtoken')
 exports.userResister = async (req, res) => {
 
     console.log('Called ');
-    const { phone, email, password, confirmpassword } = req.body;
+    
+    const { phone, email, password, confirmPassword } = req.body.formData;
 
-    if (!confirmpassword || !phone || !email || !password) {
+    if (!confirmPassword || !phone || !email || !password) {
         return res.status(400).send("Enter the data first");
     }
 
@@ -28,7 +29,7 @@ exports.userResister = async (req, res) => {
 
     }
     try {
-        const newUser = await new User({ email, phone, password, confirmpassword });
+        const newUser = await new User({ email, phone, password, confirmpassword:confirmPassword });
 
         await User.create(newUser);
         res.status(200).send("User rigistered successfully");
@@ -124,7 +125,7 @@ exports.userProfileUpdate = async (req, res) => {
     const userId = req.rootuser._id;
 
     const { name, email, phone } = req.body;
-    await User.findOneAndUpdate({ _id: userId }, { $set: { name, email, phone, created_at: new Date() } })
+     User.findOneAndUpdate({ _id: userId }, { $set: { name, email, phone, created_at: new Date() } })
         .then((user) => {
             console.log(user);
             res.status(200).send(user);
