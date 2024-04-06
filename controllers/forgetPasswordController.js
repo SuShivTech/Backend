@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 
 
 // Generate OTP Endpoint
+
 exports.forgetPassword= async (req, res) => {
     const { email } = req.body;
     const user =  await usr.findOne({email});

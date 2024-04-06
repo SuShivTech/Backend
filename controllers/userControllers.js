@@ -21,7 +21,7 @@ exports.userResister = async (req, res) => {
         return res.status(400).send("Enter the data first");
     }
 
-    const obj = await User.findOne({ email });
+    const obj = await User.findOne({$or:[{ email },{phone}]});
 
     if (obj) {
 
