@@ -1,4 +1,5 @@
 
+const axios = require('axios')
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -11,12 +12,12 @@ const errorHandler = require('../middlewares/errorHandler');
 
 // Generate OTP Endpoint
 
-exports.requestOTPByPhoneNumber= async (req, res) => {
+exports.requestOTPByPhoneNumber= async (req,res) => {
 
     try
     {
-        const { phone } = req.body;
-        // const user =  await usr.findOne({phone});
+        const phone = req.body.phone;
+        //  const user =  await usr.findOne({phone});
         
         // if (!user) {
 
@@ -24,7 +25,7 @@ exports.requestOTPByPhoneNumber= async (req, res) => {
         // }
 
         // // Generate a random OTP
-         const otp = Math.floor(100000 + Math.random() * 900000);
+        // const otp = Math.floor(100000 + Math.random() * 900000);
 
         // // Store OTP and timestamp in the database
         // const otpp = {
@@ -32,12 +33,11 @@ exports.requestOTPByPhoneNumber= async (req, res) => {
         //     timestamp: Date.now()
         // };
 
-        // const resp = await usr.findOneAndUpdate({phone}, { $set: { otp:otpp } })
         
-                
                 // Send OTP to the user via email
-       const response  = await sendOTPByPhoneNumber(phone,otp)
-        res.json({message:'OTP sent successfully',response});
+       const response  = await sendOTPByPhoneNumber('91'+phone)
+
+         res.status(200).json({message:'OTP sent successfully'});
             
     }
     catch(er)
@@ -52,29 +52,27 @@ exports.requestOTPByPhoneNumber= async (req, res) => {
 };
 
 // Verify OTP Endpoint
-exports.verifyOtpByPhone =  async(req, res) => {
+exports.verifyOtpByPhone =  async(phone, otp) => {
     try{
 
         console.log("called =======")
         
-        const { phone, otp} = req.body;
-        const user = await usr.findOne({phone});
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
+       
+     
         const verification = await client.verify.services(process.env.TWILIO_SERVICE_SID)
         .verificationChecks.create({
             to:'+91'+phone,
             code:otp
         })
-        if(!verification.valid)throw new Error("Invalid OTP");
+        console.log(verification)
+        if(!(verification.valid)){return false};
 
-        res.status(200).json({message:"OTP verified successfully",verification});
+        return true;
 
     }
     catch(err)
     {
-        res.status(500).json({message:err.message});
+        throw err;
     }
     
 };
@@ -88,16 +86,34 @@ exports.verifyOtpByPhone =  async(req, res) => {
 
 
 
-const sendOTPByPhoneNumber =  async(phoneNumber,otp) => {
+const sendOTPByPhoneNumber =  async(phoneNumber) => {
 
-   const resp =   client.verify
-   .services(process.env.TWILIO_SERVICE_SID)
-   .verifications.create({
-     
-       channel:"sms",
-       to: '+91'+phoneNumber
-   })
 
-            return resp;
+    try {
+
+
+        const payload = {
+            Param1: "value1",
+            Param2: "value2",
+            Param3: "value3",
+        };
         
-    }
+        const headers = {
+            accept: "application/json",
+            "content-type": "application/json",
+            authkey: process.env.AUTHKEY_SMS,    
+            "User-Agent": "ReadMe-API-Explorer",
+        };
+
+
+        const mobile = phoneNumber;
+        const url = `https://control.msg91.com/api/v5/otp?template_id=657bf14ed6fc0578437ea412&mobile=${mobile}`;
+    
+        const response = await axios.post(url, payload, { headers });
+        return { message: "Success",response };
+      } catch (e) {
+        throw e;
+      }
+  
+        
+}

@@ -13,11 +13,12 @@ app.use(bodyParser.json());
 
 // Generate OTP Endpoint
 
-exports.forgetPassword= async (req, res) => {
+exports.getOTPByEmail= async (req, res) => {
     const { email } = req.body;
+
     const user =  await usr.findOne({email});
     if (!user) {
-        return res.status(404).send('User not found');
+        return res.status(404).json({message:'User not found'});
     }
 
     // Generate a random OTP
@@ -40,9 +41,33 @@ exports.forgetPassword= async (req, res) => {
 
     // Send OTP to the user via email
     sendOtpByEmail(email, otp);
-
-    res.send('OTP sent successfully');
+    res.json('OTP sent successfully');
 };
+
+exports.verifyLoginOTPByEmail= async(email,otp)=>{
+
+    
+    const user = await usr.findOne({email});
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    const storedOtp = user.otp;
+    if (!storedOtp || storedOtp.code !== otp) {
+        throw new Error('Invalid OTP');
+    }
+
+    // Check if OTP has expired (10 minutes)
+    const otpTimestamp = storedOtp.timestamp;
+    const currentTime = Date.now();
+    if (currentTime - otpTimestamp > 10 * 60 * 1000) {
+        throw new Error('OTP has expired');
+    }
+
+    return true;
+}
+
+
 
 // Verify OTP Endpoint
 exports.verifyOtp =  async(req, res) => {
@@ -74,7 +99,7 @@ exports.verifyOtp =  async(req, res) => {
         res.status(200).json({message:"password changed successfully"});
     })
     .catch(e=>{
-        res.status(500).json({err:"enternal server error",e});
+        res.status(500).json({message:"enternal server error",e});
     })
 });
     
@@ -100,9 +125,12 @@ exports.resetPassword = async (req, res) => {
 };
 
 // Function to send OTP via email
+
+
 function sendOtpByEmail(email, otp) {
+    console.log(email)
     const mailOptions = {
-        from: 'adityam2448@gmail.com', // Sender address
+        from: 'raycodeforce@gmail.com', // Sender address
         to: email, // Recipient address
         subject: 'Forget Password varification OPT',
         text: 'Your OTP for changing password is '+otp+' this otp will valid for 10 min only.' // You can also use 'html' key for HTML content
@@ -116,8 +144,14 @@ function sendOtpByEmail(email, otp) {
             console.log('Email sent:', info.response);
         }
     });
+
     // Configure nodemailer to send emails
     // Example: nodemailer.createTransport(...)
     // Send email with the OTP
 }
 
+
+
+
+  
+ 

@@ -7,10 +7,11 @@ const {
     userLogout,
     getUser,
     userProfileUpdate,
+    saveHistory,
 } = require('../controllers/userControllers');
 const uploadMiddleware = require("../middlewares/uploadImageMiddleware");
-const { resetPassword, verifyOtp, forgetPassword } = require("../controllers/forgetPasswordController");
-
+const { resetPassword, verifyOtp, forgetPassword, getOTPByEmail } = require("../controllers/forgetPasswordController");
+const { createOrder } = require("../controllers/createOrder");
 
 
 userRouter.post('/register', userResister);
@@ -25,7 +26,8 @@ userRouter.get('/getuser', Authentication, getUser);
 
 userRouter.post('/reset-password', resetPassword);
 
-userRouter.post('/verify-otp', verifyOtp);
+userRouter.post('/order', createOrder);
 
-userRouter.post('/forgot-password', forgetPassword);
+userRouter.post('/paymentsuccess', Authentication, saveHistory);
+
 module.exports = userRouter

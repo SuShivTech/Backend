@@ -1,13 +1,31 @@
 
 const User = require('../models/userModels');
+const paymentHistory = require('../models/paymentHistoryModels');
 const expressAsyncHandler = require("express-async-handler");
 
-
+const axios = require("axios")
 const bcrypt = require('bcrypt')
 
-const jwt = require('jsonwebtoken')
+const dotenv = require('dotenv')
+dotenv.config();
 
+const jwt = require('jsonwebtoken');
+const { verifyOtpByPhone } = require('./mobileOtpVarification');
+const { verifyLoginOTPByEmail } = require('./forgetPasswordController');
 
+exports.saveHistory = async(req, res) => {
+
+    try{
+        const userId = req.rootuser._id;
+        const { payment_id, order_id, signature, amount } = req.body;
+
+        const response = await paymentHistory.create({ userId, payment_id, order_id, signature, amount})
+        res.status(200).json(response);
+    } catch (e) {
+        res.status(500).json({error:e.message});
+    }
+}
+ 
 //@desc User register
 //@route GET /api/user/register
 //@access public
@@ -49,26 +67,96 @@ exports.userResister = async (req, res) => {
 //@desc User Login
 //@route GET /api/user/login
 //@access public
+
+
+
 exports.userLogin = async (req, res) => {
 
+    console.log("called")
+    try
+    {
 
+    const { phone,otp } = req.body;
+    
+    
+   
 
-    const { unique_id, password } = req.body;
-
-    console.log(req.body)
-
-    if (!unique_id || !password) {
+    if (!phone  || !otp) {
         return res.status(400).json({ message: "Enter the data first " });
     }
 
 
-    let us = await User.findOne({ $or: [{ 'email': unique_id }, { 'phone': unique_id }] });
+        
+        
+        const number = '91'+phone;
+    
+        const headers = {
+            accept: "application/json",
+            "content-type": "application/json",
+            authkey: process.env.AUTHKEY_SMS,    
+            "User-Agent": "ReadMe-API-Explorer",
+        };
+
+        // const url = `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=${number}`;
+        // const response = await axios.get(url, { headers });
+    
+        // if (response.data.type !== "success") {
+        //   return res.status(400).json({ message: "OTP didn't matched" });
+        // }
+        
+        let us = await User.findOne( { phone });
+         if (!us) {
+            
+            const resp =  await User.create({phone});
+
+         
+            us = resp;
+         }
+         await User.findOneAndUpdate({phone},{$push : {lastLogin:new Date()}});
+
+         const token = await us.generateAuthToken()
+         res.cookie("jwtoken", token, {
+ 
+             expires: new Date(Date.now() + 25892000000),
+             httpOnly: true
+         });
+ 
+        //  (token) ? res.status(200).send({
+        //      message: "login success", jwtoken: token
+        //  }).status(200) : res.status(500).json({ message: "Internal server error" });
+ 
+        res.status(200).json({
+          message: "OTP verified successfully .",
+        });
+      
+
+
+    /*
+    let us = await User.findOne({ $or: [{ 'email': phone }, { 'phone': phone }] });
     if (us) {
+
+        let otpv=null;
+        if(phone.indexOf('@')!=-1){
+            const email = phone;
+            
+          otpv= await verifyLoginOTPByEmail(email,otp);
+            
+    
+        }
+        else{
+            otpv =  await verifyOtpByPhone(phone,otp);
+        }
+        
+        
+        if(!otpv)
+        {
+           return res.status(422).json({message:"Wrong OTP"})
+        }
 
         const isMatch = await bcrypt.compare(password, us.password);
 
         if (!isMatch) {
-            return res.status(401).send("Incorrect password")
+            return res.status(401).json( {message : "Incorrect password"})
         }
         const token = await us.generateAuthToken()
         res.cookie("jwtoken", token, {
@@ -82,9 +170,19 @@ exports.userLogin = async (req, res) => {
         }).status(200) : res.status(500).json({ message: "Internal server error" });
 
     } else {
-        res.status(404).send({ message: "User not found please register first" })
+
+        res.status(404).json({ message: "User not found please register first" })
 
     }
+    */
+
+
+}
+catch(e)
+{
+  
+    res.status(500).json({message:e.message});
+}
 
 }
 
@@ -98,6 +196,8 @@ exports.userLogout = async (req, res) => {
     try {
 
         res.cookie('jwtoken', '', { maxAge: 1 });
+     
+
         res.status(200).json({ message: "Token deleted" });
     }
     catch (err) {
